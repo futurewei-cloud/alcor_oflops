@@ -90,7 +90,7 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     char gratuitous_arp_reply [] = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0c, // 8 octects per line
                                 // Ethernet Type: 802.1Q VLAN tagging (0x8100)
-        0x29, 0x1a, 0x29, 0x1a, 0x81, 0x00, 0x00, 0x15, //<- this 0x00, 0x15 (which is 21) is the vlan
+        0x29, 0x1a, 0x29, 0x1a, 0x81, 0x00, 0x00, 0x01, //<- this 0x00, 0x01 (which is 1) is the vlan_id
         // Ethernet Type: ARP (0x0806) 
         0x08, 0x06, 0x06, 0x04, 0x00, 0x02, 0x00, 0x0c, 
         // ARP OP Code: 1 is request, 2 is reply
@@ -103,7 +103,7 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
 
     char mac_address_to_learn[] = { 0x80, 0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x01 };
     char ip_address_to_learn[] = { 10, 0, 0, 2 };
-    char destination_ip_address = {10, 0, 0, 3};
+    char destination_ip_address[] = {10, 0, 0, 3};
 
     char buf [512];
     int len = sizeof( struct ofp_packet_in ) + sizeof(gratuitous_arp_reply);
@@ -126,8 +126,8 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
 
     memcpy(pkt_in->data, gratuitous_arp_reply, sizeof(gratuitous_arp_reply));
 
-    mac_address_to_learn[5] = fs->id;
-    ip_address_to_learn[2] = fs->id;
+    // mac_address_to_learn[5] = fs->id;
+    // ip_address_to_learn[2] = fs->id;
 
     eth = (struct ether_header * ) pkt_in->data;
     memcpy (eth->ether_shost, mac_address_to_learn, 6);
