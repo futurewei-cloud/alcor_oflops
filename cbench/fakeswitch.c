@@ -88,10 +88,13 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
 {
     // thanks wireshark
     char gratuitous_arp_reply [] = {
-        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0c, 
-        0x29, 0x1a, 0x29, 0x1a, 0x08, 0x06, 0x00, 0x01, 
-        0x08, 0x00, 0x06, 0x04, 0x00, 0x02, 0x00, 0x0c, 
-        0x29, 0x1a, 0x29, 0x1a, 0x7f, 0x00, 0x00, 0x01, 
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0c, // 8 octects per line
+                                // Ethernet Type: 802.1Q VLAN tagging (0x8100)
+        0x29, 0x1a, 0x29, 0x1a, 0x81, 0x00, 0x00, 0x15, //<- this 0x00, 0x15 (which is 21) is the vlan
+        // Ethernet Type: ARP (0x0806) 
+        0x08, 0x06, 0x06, 0x04, 0x00, 0x02, 0x00, 0x0c, 
+        // ARP OP Code: 1 is request, 2 is reply
+        0x00, 0x01, 0x29, 0x1a, 0x7f, 0x00, 0x00, 0x01, 
         0x00, 0x0c, 0x29, 0x1a, 0x29, 0x1a, 0x7f, 0x00, 
         0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -99,7 +102,8 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     };
 
     char mac_address_to_learn[] = { 0x80, 0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x01 };
-    char ip_address_to_learn[] = { 192, 168 , 1, 40 };
+    char ip_address_to_learn[] = { 10, 0, 0, 2 };
+    char destination_ip_address = {10, 0, 0, 3};
 
     char buf [512];
     int len = sizeof( struct ofp_packet_in ) + sizeof(gratuitous_arp_reply);
@@ -129,10 +133,10 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     memcpy (eth->ether_shost, mac_address_to_learn, 6);
 
     arp_reply =  ((void *)  eth) + sizeof (struct ether_header);
-    memcpy ( arp_reply + 8, mac_address_to_learn, 6);
-    memcpy ( arp_reply + 14, ip_address_to_learn, 4);
-    memcpy ( arp_reply + 18, mac_address_to_learn, 6);
-    memcpy ( arp_reply + 24, ip_address_to_learn, 4);
+    memcpy ( arp_reply + 8 + 4, mac_address_to_learn, 6);
+    memcpy ( arp_reply + 14 + 4, destination_ip_address, 4);
+    memcpy ( arp_reply + 18 + 4, mac_address_to_learn, 6);
+    memcpy ( arp_reply + 24 + 4, ip_address_to_learn, 4);
 
     msgbuf_push(fs->outbuf,(char * ) pkt_in, len);
     debug_msg(fs, " sent gratuitous ARP reply to learn about mac address: version %d length %d type %d eth: %x arp: %x ", pkt_in->header.version, len, buf[1], eth, arp_reply);
@@ -491,7 +495,7 @@ static void fakeswitch_handle_write(struct fakeswitch *fs)
         for (i = 0; i < send_count; i++)
         {
             // queue up packet
-            
+            fakeswitch_learn_dstmac(fs);
             fs->probe_state++;
             // TODO come back and remove this copy
             count = make_packet_in(fs->id, fs->xid++, fs->current_buffer_id, buf, BUFLEN, fs->current_mac_address);
@@ -512,7 +516,7 @@ static void fakeswitch_handle_write(struct fakeswitch *fs)
     } else if (  fs->switch_status == LEARN_DSTMAC) 
     {
         // we should learn the dst mac addresses
-        fakeswitch_learn_dstmac(fs);
+        // fakeswitch_learn_dstmac(fs);
         fakeswitch_change_status(fs, READY_TO_SEND);
     }
     // send any data if it's queued
