@@ -380,14 +380,18 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
             struct ofp_stats_request * stats_req;
             case OFPT_PACKET_OUT:
                 po = (struct ofp_packet_out *) ofph;
+                debug_msg(fs, "Got OFPT_PACKET_OUT, switch_status: %ld", fs->switch_status);
+                
                 if ( fs->switch_status == READY_TO_SEND && ! packet_out_is_lldp(po)) { 
                     // assume this is in response to what we sent
+                    debug_msg(fs, "Increment count for OFPT_PACKET_OUT");
                     fs->count++;        // got response to what we went
                     fs->probe_state--;
                 }
                 break;
             case OFPT_FLOW_MOD:
                 fm = (struct ofp_flow_mod *) ofph;
+                debug_msg(fs, "Got OFPT_FLOW_MOD");
                 if(fs->switch_status == READY_TO_SEND && (fm->command == htons(OFPFC_ADD) || 
                         fm->command == htons(OFPFC_MODIFY_STRICT)))
                 {
