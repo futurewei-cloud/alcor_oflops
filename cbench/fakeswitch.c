@@ -502,10 +502,10 @@ static void fakeswitch_handle_write(struct fakeswitch *fs)
             fakeswitch_learn_dstmac(fs);
             fs->probe_state++;
             // TODO come back and remove this copy
-            count = make_packet_in(fs->id, fs->xid++, fs->current_buffer_id, buf, BUFLEN, fs->current_mac_address);
+            // count = make_packet_in(fs->id, fs->xid++, fs->current_buffer_id, buf, BUFLEN, fs->current_mac_address);
             fs->current_mac_address = ( fs->current_mac_address + 1 ) % fs->total_mac_addresses;
             fs->current_buffer_id =  ( fs->current_buffer_id + 1 ) % NUM_BUFFER_IDS;
-            msgbuf_push(fs->outbuf, buf, count);
+            // msgbuf_push(fs->outbuf, buf, count);
             debug_msg(fs, "send message %d", i);
         }
     } else if( fs->switch_status == WAITING) 
