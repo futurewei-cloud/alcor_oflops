@@ -127,7 +127,7 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     memcpy(pkt_in->data, gratuitous_arp_reply, sizeof(gratuitous_arp_reply));
 
     // mac_address_to_learn[5] = fs->id;
-    // ip_address_to_learn[2] = (fs->id)%2;
+    ip_address_to_learn[2] = (fs->id)%256;
 
     eth = (struct ether_header * ) pkt_in->data;
     memcpy (eth->ether_shost, mac_address_to_learn, 6);
