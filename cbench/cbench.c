@@ -177,6 +177,7 @@ int timeout_connect(int fd, const char * hostname, int port, int mstimeout) {
 int make_tcp_connection_from_port(const char * hostname, unsigned short port, unsigned short sport,
         int mstimeout, int nodelay)
 {
+    printf("Making connection to host at port: %ld", port);
     struct sockaddr_in local;
     int s;
     int err;
@@ -184,11 +185,13 @@ int make_tcp_connection_from_port(const char * hostname, unsigned short port, un
 
     s = socket(AF_INET,SOCK_STREAM,0);
     if(s<0){
+        printf("make_tcp_connection: socket: %ld", port);
         perror("make_tcp_connection: socket");
         exit(1);  // bad socket
     }
     if(nodelay && (setsockopt(s, IPPROTO_TCP, TCP_NODELAY, &zero, sizeof(zero)) < 0))
     {
+        printf("setsockopt %ld", port);
         perror("setsockopt");
         fprintf(stderr,"make_tcp_connection::Unable to disable Nagle's algorithm\n");
         exit(1);
@@ -200,6 +203,7 @@ int make_tcp_connection_from_port(const char * hostname, unsigned short port, un
     err=bind(s,(struct sockaddr *)&local, sizeof(local));
     if(err)
     {
+        printf("make_tcp_connection_from_port::bind %ld", port);
         perror("make_tcp_connection_from_port::bind");
         return -4;
     }
@@ -208,6 +212,7 @@ int make_tcp_connection_from_port(const char * hostname, unsigned short port, un
 
     if(err)
     {
+        printf("make_tcp_connection: connect %ld", port);
         perror("make_tcp_connection: connect");
         close(s);
         return err; // bad connect
