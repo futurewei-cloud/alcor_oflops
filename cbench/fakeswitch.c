@@ -127,7 +127,7 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     memcpy(pkt_in->data, gratuitous_arp_reply, sizeof(gratuitous_arp_reply));
 
     // mac_address_to_learn[5] = fs->id;
-    // ip_address_to_learn[2] = fs->id;
+    // ip_address_to_learn[2] = (fs->id)%2;
 
     eth = (struct ether_header * ) pkt_in->data;
     memcpy (eth->ether_shost, mac_address_to_learn, 6);
@@ -351,6 +351,7 @@ void fakeswitch_change_status(struct fakeswitch *fs, int new_status) {
 /***********************************************************************/
 void fakeswitch_handle_read(struct fakeswitch *fs)
 {
+    debug_msg(fs, "Handle read called.");
     int count;
     struct ofp_header * ofph;
     struct ofp_header echo;
@@ -484,6 +485,7 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
 /***********************************************************************/
 static void fakeswitch_handle_write(struct fakeswitch *fs)
 {
+    debug_msg(fs, "Handle write.");
     char buf[BUFLEN];
     int count ;
     int send_count = 0 ;
