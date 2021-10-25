@@ -94,7 +94,7 @@ double run_test(int n_fakeswitches, struct fakeswitch * fakeswitches, int mstest
     sum /= passed;  // is now per ms
     printf(" total = %lf per ms \n", sum);
     free(pollfds);
-    printf("Test Ended");
+    printf("Test Ended\n");
     return sum;
 }
 
