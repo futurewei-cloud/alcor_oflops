@@ -144,7 +144,7 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     memcpy ( arp_reply + 24 + 4, ip_address_to_learn, 4);
 
     msgbuf_push(fs->outbuf,(char * ) pkt_in, len);
-    debug_msg(fs, " sent packet in with destination IP: %ld.%ld.%ld.%ld \n", ip_address_to_learn[0],ip_address_to_learn[1],ip_address_to_learn[2],ip_address_to_learn[3]);
+    debug_msg(fs, "current_mac_address: %d sent packet in with destination IP: %ld.%ld.%ld.%ld \n", fs->current_mac_address, ip_address_to_learn[0],ip_address_to_learn[1],ip_address_to_learn[2],ip_address_to_learn[3]);
 }
 
 
