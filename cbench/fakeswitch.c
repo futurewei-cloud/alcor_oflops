@@ -144,7 +144,7 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     memcpy ( arp_reply + 24 + 4, ip_address_to_learn, 4);
 
     msgbuf_push(fs->outbuf,(char * ) pkt_in, len);
-    debug_msg(fs, " sent gratuitous ARP reply to learn about mac address: version %d length %d type %d eth: %x arp: %x ", pkt_in->header.version, len, buf[1], eth, arp_reply);
+    debug_msg(fs, " sent packet in with destination IP: %ld.%ld.%ld.%ld \n", ip_address_to_learn[0],ip_address_to_learn[1],ip_address_to_learn[2],ip_address_to_learn[3]);
 }
 
 
