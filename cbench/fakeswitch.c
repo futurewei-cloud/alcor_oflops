@@ -135,7 +135,8 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     ip_address_to_learn[3] = (fs->current_mac_address)%100;
 
     // we don't want the last digit of IP address to be 0 or 1, 1 is reserved.
-    if (ip_address_to_learn[3] == 1 || ip_address_to_learn[3] ==0){
+    // also ignoring .10, as it is used on the same host when host 1 has only 1 port
+    if (ip_address_to_learn[3] == 1 || ip_address_to_learn[3] == 0 || ip_address_to_learn[3] == 10){
         ip_address_to_learn[3] = 2;
     }
 
