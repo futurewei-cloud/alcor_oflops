@@ -134,6 +134,11 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     // fourth octet
     ip_address_to_learn[3] = (fs->current_mac_address)%100;
 
+    // we don't want the last digit of IP address to be 0 or 1, 1 is reserved.
+    if (ip_address_to_learn[3] == 1 || ip_address_to_learn[3] ==0){
+        ip_address_to_learn[3] = 2;
+    }
+
     eth = (struct ether_header * ) pkt_in->data;
     memcpy (eth->ether_shost, mac_address_to_learn, 6);
 
