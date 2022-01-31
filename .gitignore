@@ -18,8 +18,11 @@ cbench/cbench
 ./install-sh
 ./compile
 ./config.guess
+./config.log
 ./configure
 ./depcomp
 *Makefile
 *Makefile.in
 ./ltmain.sh
+./doc/doxygen.conf
+./stamp-h1
