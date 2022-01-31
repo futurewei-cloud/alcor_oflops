@@ -12,6 +12,11 @@ cbench/cbench
 *.o
 *.lo
 *.la
+*.a
 ./missing
 ./libtool
 ./install-sh
+./compile
+./config.guess
+./configure
+./depcomp
