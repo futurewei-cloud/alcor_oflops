@@ -20,3 +20,6 @@ cbench/cbench
 ./config.guess
 ./configure
 ./depcomp
+*Makefile
+*Makefile.in
+./ltmain.sh
