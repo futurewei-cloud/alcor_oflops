@@ -395,21 +395,23 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
                 debug_msg(fs, "Got OFPT_PACKET_OUT, switch_status: %ld", fs->switch_status);
                 
                 if ( fs->switch_status == READY_TO_SEND && ! packet_out_is_lldp(po)) { 
-                    // assume this is in response to what we sent
+                    assume this is in response to what we sent
                     debug_msg(fs, "Increment count for OFPT_PACKET_OUT");
                     fs->count++;        // got response to what we went
                     fs->probe_state--;
+                }else{
+                    debug_msg(fs, "Got OFPT_PACKET_OUT but it doesn't count");
                 }
                 break;
             case OFPT_FLOW_MOD:
-                fm = (struct ofp_flow_mod *) ofph;
+                // fm = (struct ofp_flow_mod *) ofph;
                 debug_msg(fs, "Got OFPT_FLOW_MOD");
-                if(fs->switch_status == READY_TO_SEND && (fm->command == htons(OFPFC_ADD) || 
-                        fm->command == htons(OFPFC_MODIFY_STRICT)))
-                {
+                // if(fs->switch_status == READY_TO_SEND && (fm->command == htons(OFPFC_ADD) || 
+                        // fm->command == htons(OFPFC_MODIFY_STRICT)))
+                // {
                     fs->count++;        // got response to what we went
                     fs->probe_state--;
-                }
+                // }
                 break;
             case OFPT_FEATURES_REQUEST:
                 // pull msgs out of buffer
@@ -421,7 +423,7 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
                 fakeswitch_change_status(fs, fs->learn_dstmac ? LEARN_DSTMAC : READY_TO_SEND);
                 break;
             case OFPT_SET_CONFIG:
-                // pull msgs out of buffer
+                // pull msgs out of buffer1
                 debug_msg(fs, "parsing set_config");
 		parse_set_config(ofph);
                 break;
@@ -444,6 +446,7 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
                 msgbuf_push(fs->outbuf, buf, count);
                 debug_msg(fs, "sent vendor");
                 // apply nox hack; nox ignores packet_in until this msg is sent
+                fs->count++;
                 fs->probe_state=0;
                 break;
             case OFPT_HELLO:
