@@ -5,3 +5,7 @@ openflow
 netfpga-packet-generator-c-library
 openflow
 cbench/cbench
+./.libs
+./.deps
+./Makefile*
+./autom4te.cache
