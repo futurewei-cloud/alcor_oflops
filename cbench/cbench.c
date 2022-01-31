@@ -51,6 +51,7 @@ struct myargs my_options[] = {
 /*******************************************************************/
 double run_test(int n_fakeswitches, struct fakeswitch * fakeswitches, int mstestlen, int delay)
 {
+    printf("Test started\n");
     struct timeval now, then, diff;
     struct  pollfd  * pollfds;
     int i;
@@ -77,11 +78,18 @@ double run_test(int n_fakeswitches, struct fakeswitch * fakeswitches, int mstest
 
         for(i = 0; i< n_fakeswitches; i++)
             fakeswitch_handle_io(&fakeswitches[i], &pollfds[i]);
+        /*
+            This is the throttling part.
+            The program sleeps 5000 microsecond(5ms) at the end of each iteration.
+            This sleep time gave us a cbench send packet_in speed at about 500,000 requests/second
+            Please feel free to adjust the number to suit your need.
+        */
+        usleep(5000);
     }
     tNow = now.tv_sec;
     tmNow = localtime(&tNow);
     printf("%02d:%02d:%02d.%03d %-3d switches: flows/sec:  ", tmNow->tm_hour, tmNow->tm_min, tmNow->tm_sec, (int)(now.tv_usec/1000), n_fakeswitches);
-    usleep(100000); // sleep for 100 ms, to let packets queue
+    usleep(5000); // sleep for 5 ms, to let packets queue
     for( i = 0 ; i < n_fakeswitches; i++)
     {
         count = fakeswitch_get_count(&fakeswitches[i]);
@@ -93,6 +101,7 @@ double run_test(int n_fakeswitches, struct fakeswitch * fakeswitches, int mstest
     sum /= passed;  // is now per ms
     printf(" total = %lf per ms \n", sum);
     free(pollfds);
+    printf("Test Ended\n");
     return sum;
 }
 
@@ -177,6 +186,7 @@ int timeout_connect(int fd, const char * hostname, int port, int mstimeout) {
 int make_tcp_connection_from_port(const char * hostname, unsigned short port, unsigned short sport,
         int mstimeout, int nodelay)
 {
+    printf("Making connection to host at port: %ld\n", port);
     struct sockaddr_in local;
     int s;
     int err;
@@ -184,11 +194,13 @@ int make_tcp_connection_from_port(const char * hostname, unsigned short port, un
 
     s = socket(AF_INET,SOCK_STREAM,0);
     if(s<0){
+        printf("make_tcp_connection: socket: %ld\n", port);
         perror("make_tcp_connection: socket");
         exit(1);  // bad socket
     }
     if(nodelay && (setsockopt(s, IPPROTO_TCP, TCP_NODELAY, &zero, sizeof(zero)) < 0))
     {
+        printf("setsockopt %ld\n", port);
         perror("setsockopt");
         fprintf(stderr,"make_tcp_connection::Unable to disable Nagle's algorithm\n");
         exit(1);
@@ -200,6 +212,7 @@ int make_tcp_connection_from_port(const char * hostname, unsigned short port, un
     err=bind(s,(struct sockaddr *)&local, sizeof(local));
     if(err)
     {
+        printf("make_tcp_connection_from_port::bind %ld\n", port);
         perror("make_tcp_connection_from_port::bind");
         return -4;
     }
@@ -208,6 +221,7 @@ int make_tcp_connection_from_port(const char * hostname, unsigned short port, un
 
     if(err)
     {
+        printf("make_tcp_connection: connect %ld\n", port);
         perror("make_tcp_connection: connect");
         close(s);
         return err; // bad connect
@@ -372,6 +386,7 @@ int main(int argc, char * argv[])
 
     for( i = 0; i < n_fakeswitches; i++)
     {
+        printf("Inside n_fakeswitches for loop, i = %ld\n", i);
         int sock;
         double sum = 0;
         if (connect_delay != 0 && i != 0 && (i % connect_group_size == 0)) {
@@ -385,6 +400,7 @@ int main(int argc, char * argv[])
             fprintf(stderr, "make_nonblock_tcp_connection :: returned %d", sock);
             exit(1);
         }
+        printf("Connnection established, i = %ld\n", i);
         if(debug)
             fprintf(stderr,"Initializing switch %d ... ", i+1);
         fflush(stderr);
@@ -397,6 +413,7 @@ int main(int argc, char * argv[])
         if(!should_test_range && ((i+1) != n_fakeswitches)) // only if testing range or this is last
             continue;
         for( j = 0; j < tests_per_loop; j ++) {
+            printf("Inside tests per loop, i = %ld, j = %ld\n", i, j);
             if ( j > 0 )
                 delay = 0;      // only delay on the first run
             v = 1000.0 * run_test(i+1, fakeswitches, mstestlen, delay);

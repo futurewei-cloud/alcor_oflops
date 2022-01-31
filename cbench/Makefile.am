@@ -13,5 +13,5 @@ bin_PROGRAMS=cbench
 cbench_SOURCES = \
 	myargs.c myargs.h \
 	cbench.c cbench.h \
-	fakeswitch.c fakeswitch.h 
+	fakeswitch.c fakeswitch.h
 

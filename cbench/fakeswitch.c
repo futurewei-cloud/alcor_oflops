@@ -88,10 +88,13 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
 {
     // thanks wireshark
     char gratuitous_arp_reply [] = {
-        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0c, 
-        0x29, 0x1a, 0x29, 0x1a, 0x08, 0x06, 0x00, 0x01, 
-        0x08, 0x00, 0x06, 0x04, 0x00, 0x02, 0x00, 0x0c, 
-        0x29, 0x1a, 0x29, 0x1a, 0x7f, 0x00, 0x00, 0x01, 
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0c, // 8 octects per line
+                                // Ethernet Type: 802.1Q VLAN tagging (0x8100)
+        0x29, 0x1a, 0x29, 0x1a, 0x81, 0x00, 0x00, 0x01, //<- this 0x00, 0x01 (which is 1) is the vlan_id
+        // Ethernet Type: ARP (0x0806) 
+        0x08, 0x06, 0x06, 0x04, 0x00, 0x02, 0x00, 0x0c, 
+        // ARP OP Code: 1 is request, 2 is reply
+        0x00, 0x01, 0x29, 0x1a, 0x7f, 0x00, 0x00, 0x01, 
         0x00, 0x0c, 0x29, 0x1a, 0x29, 0x1a, 0x7f, 0x00, 
         0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -99,7 +102,8 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     };
 
     char mac_address_to_learn[] = { 0x80, 0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x01 };
-    char ip_address_to_learn[] = { 192, 168 , 1, 40 };
+    char ip_address_to_learn[] = { 10, 0, 0, 2 };
+    char destination_ip_address[] = {10, 0, 0, 3};
 
     char buf [512];
     int len = sizeof( struct ofp_packet_in ) + sizeof(gratuitous_arp_reply);
@@ -123,19 +127,30 @@ void fakeswitch_learn_dstmac(struct fakeswitch *fs)
     memcpy(pkt_in->data, gratuitous_arp_reply, sizeof(gratuitous_arp_reply));
 
     mac_address_to_learn[5] = fs->id;
-    ip_address_to_learn[2] = fs->id;
+    // second octet
+    ip_address_to_learn[1] = (fs->current_mac_address) / 10000;
+    // third octet
+    ip_address_to_learn[2] = ((fs->current_mac_address)%10000) / 100;
+    // fourth octet
+    ip_address_to_learn[3] = (fs->current_mac_address)%100;
+
+    // we don't want the last digit of IP address to be 0 or 1, 1 is reserved.
+    // also ignoring .10, as it is used on the same host when host 1 has only 1 port
+    if (ip_address_to_learn[3] == 1 || ip_address_to_learn[3] == 0 || ip_address_to_learn[3] == 10){
+        ip_address_to_learn[3] = 2;
+    }
 
     eth = (struct ether_header * ) pkt_in->data;
     memcpy (eth->ether_shost, mac_address_to_learn, 6);
 
     arp_reply =  ((void *)  eth) + sizeof (struct ether_header);
-    memcpy ( arp_reply + 8, mac_address_to_learn, 6);
-    memcpy ( arp_reply + 14, ip_address_to_learn, 4);
-    memcpy ( arp_reply + 18, mac_address_to_learn, 6);
-    memcpy ( arp_reply + 24, ip_address_to_learn, 4);
+    memcpy ( arp_reply + 8 + 4, mac_address_to_learn, 6);
+    memcpy ( arp_reply + 14 + 4, destination_ip_address, 4);
+    memcpy ( arp_reply + 18 + 4, mac_address_to_learn, 6);
+    memcpy ( arp_reply + 24 + 4, ip_address_to_learn, 4);
 
     msgbuf_push(fs->outbuf,(char * ) pkt_in, len);
-    debug_msg(fs, " sent gratuitous ARP reply to learn about mac address: version %d length %d type %d eth: %x arp: %x ", pkt_in->header.version, len, buf[1], eth, arp_reply);
+    debug_msg(fs, "current_mac_address: %d sent packet in with destination IP: %ld.%ld.%ld.%ld \n", fs->current_mac_address, ip_address_to_learn[0],ip_address_to_learn[1],ip_address_to_learn[2],ip_address_to_learn[3]);
 }
 
 
@@ -347,6 +362,7 @@ void fakeswitch_change_status(struct fakeswitch *fs, int new_status) {
 /***********************************************************************/
 void fakeswitch_handle_read(struct fakeswitch *fs)
 {
+    debug_msg(fs, "Handle read called.");
     int count;
     struct ofp_header * ofph;
     struct ofp_header echo;
@@ -376,14 +392,20 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
             struct ofp_stats_request * stats_req;
             case OFPT_PACKET_OUT:
                 po = (struct ofp_packet_out *) ofph;
+                debug_msg(fs, "Got OFPT_PACKET_OUT, switch_status: %ld", fs->switch_status);
+                
                 if ( fs->switch_status == READY_TO_SEND && ! packet_out_is_lldp(po)) { 
                     // assume this is in response to what we sent
+                    debug_msg(fs, "Increment count for OFPT_PACKET_OUT");
                     fs->count++;        // got response to what we went
                     fs->probe_state--;
+                }else{
+                    debug_msg(fs, "Got OFPT_PACKET_OUT but it doesn't count");
                 }
                 break;
             case OFPT_FLOW_MOD:
                 fm = (struct ofp_flow_mod *) ofph;
+                debug_msg(fs, "Got OFPT_FLOW_MOD");
                 if(fs->switch_status == READY_TO_SEND && (fm->command == htons(OFPFC_ADD) || 
                         fm->command == htons(OFPFC_MODIFY_STRICT)))
                 {
@@ -424,6 +446,7 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
                 msgbuf_push(fs->outbuf, buf, count);
                 debug_msg(fs, "sent vendor");
                 // apply nox hack; nox ignores packet_in until this msg is sent
+                fs->count++;
                 fs->probe_state=0;
                 break;
             case OFPT_HELLO:
@@ -476,6 +499,7 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
 /***********************************************************************/
 static void fakeswitch_handle_write(struct fakeswitch *fs)
 {
+    debug_msg(fs, "Handle write.");
     char buf[BUFLEN];
     int count ;
     int send_count = 0 ;
@@ -491,13 +515,13 @@ static void fakeswitch_handle_write(struct fakeswitch *fs)
         for (i = 0; i < send_count; i++)
         {
             // queue up packet
-            
+            fakeswitch_learn_dstmac(fs);
             fs->probe_state++;
             // TODO come back and remove this copy
             count = make_packet_in(fs->id, fs->xid++, fs->current_buffer_id, buf, BUFLEN, fs->current_mac_address);
             fs->current_mac_address = ( fs->current_mac_address + 1 ) % fs->total_mac_addresses;
             fs->current_buffer_id =  ( fs->current_buffer_id + 1 ) % NUM_BUFFER_IDS;
-            msgbuf_push(fs->outbuf, buf, count);
+            // msgbuf_push(fs->outbuf, buf, count);
             debug_msg(fs, "send message %d", i);
         }
     } else if( fs->switch_status == WAITING) 
@@ -512,7 +536,7 @@ static void fakeswitch_handle_write(struct fakeswitch *fs)
     } else if (  fs->switch_status == LEARN_DSTMAC) 
     {
         // we should learn the dst mac addresses
-        fakeswitch_learn_dstmac(fs);
+        // fakeswitch_learn_dstmac(fs);
         fakeswitch_change_status(fs, READY_TO_SEND);
     }
     // send any data if it's queued
