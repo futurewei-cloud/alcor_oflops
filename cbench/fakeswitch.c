@@ -404,7 +404,7 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
                 }
                 break;
             case OFPT_FLOW_MOD:
-                // fm = (struct ofp_flow_mod *) ofph;
+                fm = (struct ofp_flow_mod *) ofph;
                 debug_msg(fs, "Got OFPT_FLOW_MOD");
                 if(fs->switch_status == READY_TO_SEND && (fm->command == htons(OFPFC_ADD) || 
                         fm->command == htons(OFPFC_MODIFY_STRICT)))
