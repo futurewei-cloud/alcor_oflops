@@ -78,13 +78,18 @@ double run_test(int n_fakeswitches, struct fakeswitch * fakeswitches, int mstest
 
         for(i = 0; i< n_fakeswitches; i++)
             fakeswitch_handle_io(&fakeswitches[i], &pollfds[i]);
-        // try to sleep 1 microsecond
-        usleep(1);
+        /*
+            This is the throttling part.
+            The program sleeps 5000 microsecond(5ms) at the end of each iteration.
+            This sleep time gave us a cbench send packet_in speed at about 500,000 requests/second
+            Please feel free to adjust the number to suit your need.
+        */
+        usleep(5000);
     }
     tNow = now.tv_sec;
     tmNow = localtime(&tNow);
     printf("%02d:%02d:%02d.%03d %-3d switches: flows/sec:  ", tmNow->tm_hour, tmNow->tm_min, tmNow->tm_sec, (int)(now.tv_usec/1000), n_fakeswitches);
-    usleep(100000); // sleep for 100 ms, to let packets queue
+    usleep(5000); // sleep for 5 ms, to let packets queue
     for( i = 0 ; i < n_fakeswitches; i++)
     {
         count = fakeswitch_get_count(&fakeswitches[i]);
